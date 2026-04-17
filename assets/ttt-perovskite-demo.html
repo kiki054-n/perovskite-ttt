@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ペロブスカイト超電導 × TTT理論 — インタラクティブデモ</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f8f7f4;
+  --surface: #ffffff;
+  --border: rgba(0,0,0,0.10);
+  --text: #2c2c2a;
+  --muted: #6b6b66;
+  --purple: #534AB7;
+  --teal: #0F6E56;
+  --coral: #D85A30;
+  --blue: #185FA5;
+  --amber: #854F0B;
+  --radius: 12px;
+}
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  padding: 2rem 1rem;
+  max-width: 960px;
+  margin: 0 auto;
+}
+h1 { font-size: 1.6rem; font-weight: 500; margin-bottom: 0.4rem; }
+h2 { font-size: 1.1rem; font-weight: 500; margin-bottom: 1rem; color: var(--text); }
+.tagline { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+.card {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.metric-row { display: flex; gap: 12px; margin-bottom: 1.2rem; flex-wrap: wrap; }
+.metric {
+  background: #f3f2ef;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  flex: 1; min-width: 110px;
+}
+.metric-label { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+.metric-value { font-size: 22px; font-weight: 500; }
+.metric-value.good { color: var(--teal); }
+.metric-value.warn { color: var(--amber); }
+.metric-value.bad { color: var(--coral); }
+.slider-row { display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; }
+.slider-row label { font-size: 13px; color: var(--muted); min-width: 160px; }
+.slider-row input[type=range] { flex: 1; accent-color: var(--purple); }
+.slider-row span { font-size: 13px; font-weight: 500; min-width: 50px; text-align: right; }
+canvas { width: 100%; border-radius: 8px; display: block; }
+.badge {
+  display: inline-block; font-size: 11px; padding: 2px 10px;
+  border-radius: 6px; margin-right: 6px; margin-bottom: 6px;
+  font-weight: 500;
+}
+.badge-purple { background: #EEEDFE; color: var(--purple); }
+.badge-teal { background: #E1F5EE; color: var(--teal); }
+.badge-coral { background: #FAECE7; color: var(--coral); }
+.badge-blue { background: #E6F1FB; color: var(--blue); }
+.eq-bar-wrap { background: #f0eeea; border-radius: 4px; height: 10px; overflow: hidden; margin-top: 4px; }
+.eq-bar { height: 100%; border-radius: 4px; transition: width 0.3s, background 0.3s; }
+.section-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 0.8rem; }
+.octahedron-wrap { display: flex; justify-content: center; margin: 0.5rem 0; }
+#oc-svg { max-width: 320px; }
+table { width: 100%; font-size: 13px; border-collapse: collapse; }
+th { text-align: left; font-size: 11px; color: var(--muted); font-weight: 400; padding: 4px 8px; border-bottom: 0.5px solid var(--border); }
+td { padding: 6px 8px; border-bottom: 0.5px solid var(--border); }
+tr:last-child td { border-bottom: none; }
+.tc-highlight { font-size: 2rem; font-weight: 500; color: var(--purple); }
+.formula { font-family: monospace; font-size: 13px; background: #f3f2ef; padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; line-height: 1.9; }
+@media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<h1>ペロブスカイト超電導 × TTT理論</h1>
+<p class="tagline">ベクトルの総和はゼロになる — BO₆ 正八面体の TTT 9点系解析</p>
+
+<!-- 材料プリセット -->
+<div class="card">
+  <div class="section-title">材料を選択</div>
+  <div id="presets"></div>
+</div>
+
+<div class="grid-2">
+
+  <!-- 左：パラメータ制御 -->
+  <div class="card">
+    <h2>BO₆ 構造パラメータ</h2>
+    <div class="slider-row">
+      <label>d_x（R 軸 B-O 結合長）</label>
+      <input type="range" id="sl-dx" min="1.6" max="2.6" step="0.01" value="1.94">
+      <span id="v-dx">1.94 Å</span>
+    </div>
+    <div class="slider-row">
+      <label>d_y（I 軸 B-O 結合長）</label>
+      <input type="range" id="sl-dy" min="1.6" max="2.6" step="0.01" value="1.94">
+      <span id="v-dy">1.94 Å</span>
+    </div>
+    <div class="slider-row">
+      <label>d_z（J 軸・頂点酸素）</label>
+      <input type="range" id="sl-dz" min="1.6" max="2.8" step="0.01" value="2.30">
+      <span id="v-dz">2.30 Å</span>
+    </div>
+    <div class="slider-row">
+      <label>Tolerance factor t</label>
+      <input type="range" id="sl-t" min="0.75" max="1.15" step="0.01" value="0.90">
+      <span id="v-t">0.90</span>
+    </div>
+    <div class="slider-row">
+      <label>ドーピング量 x</label>
+      <input type="range" id="sl-x" min="0.00" max="0.35" step="0.01" value="0.15">
+      <span id="v-x">0.15</span>
+    </div>
+  </div>
+
+  <!-- 右：TTT 解析結果 -->
+  <div class="card">
+    <h2>TTT 解析結果</h2>
+    <div class="metric-row">
+      <div class="metric">
+        <div class="metric-label">TTT 歪み指数 D</div>
+        <div class="metric-value" id="m-D">—</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">JT パラメータ Q</div>
+        <div class="metric-value" id="m-Q">—</div>
+      </div>
+    </div>
+    <div style="margin-bottom:1rem">
+      <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">均衡度 EQ（ベクトル総和ゼロへの近接度）</div>
+      <div class="eq-bar-wrap"><div class="eq-bar" id="eq-bar"></div></div>
+      <div style="font-size:13px; font-weight:500; margin-top:4px;" id="m-EQ">—</div>
+    </div>
+    <div style="border-top: 0.5px solid var(--border); padding-top:1rem; margin-top:0.5rem;">
+      <div class="section-title">予測 Tc（TTT 閾値モデル）</div>
+      <div class="tc-highlight" id="m-Tc">— K</div>
+      <div style="font-size:12px; color:var(--muted); margin-top:4px;" id="m-state">—</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- BO₆ 正八面体可視化 + ベクトル分析 -->
+<div class="grid-2">
+
+  <div class="card">
+    <h2>BO₆ 正八面体（TTT 9点系）</h2>
+    <div class="octahedron-wrap">
+      <svg id="oc-svg" viewBox="-160 -160 320 320" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+    <div style="font-size:12px; color:var(--muted); text-align:center; margin-top:0.5rem;">
+      <span class="badge badge-coral">R 軸（x）</span>
+      <span class="badge badge-blue">I 軸（y）</span>
+      <span class="badge badge-teal">J 軸（z）</span>
+      <span class="badge badge-purple">B（中心 = 00）</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>ドーピング相図（TTT モデル）</h2>
+    <canvas id="phase-canvas" height="220"></canvas>
+    <div style="font-size:11px; color:var(--muted); margin-top:6px; text-align:center;">
+      縦軸：予測 Tc [K]　横軸：ドーピング量 x
+    </div>
+  </div>
+
+</div>
+
+<!-- 対応表 -->
+<div class="card">
+  <h2>TTT ↔ 超電導物理 対応表</h2>
+  <div class="formula">
+    R + I + J = 0　（三軸ベクトル和）<br>
+    Cooper 対：(+k↑) + (−k↓) → 双極のゼロ（00）<br>
+    Tc = 「00 到達」が熱的外乱で破壊される閾値温度
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>TTT 概念</th>
+        <th>超電導物理</th>
+        <th>現状態</th>
+      </tr>
+    </thead>
+    <tbody id="corr-table"></tbody>
+  </table>
+</div>
+
+<p style="text-align:center; font-size:12px; color:var(--muted); margin-top:2rem; padding-top:1rem; border-top:0.5px solid var(--border);">
+  TTT（トリテトラ理論）: <a href="https://github.com/kiki054-n/TTT" style="color:var(--purple);">github.com/kiki054-n/TTT</a>
+  &nbsp;|&nbsp;
+  ペロブスカイト超電導 × TTT リポジトリ
+</p>
+
+<script>
+// ── 材料プリセット
+const PRESETS = [
+  { name: "理想 BO₆", dx:2.00, dy:2.00, dz:2.00, t:1.00, x:0.15, color:"#534AB7" },
+  { name: "YBCO 型",  dx:1.94, dy:1.94, dz:2.30, t:0.90, x:0.15, color:"#185FA5" },
+  { name: "LSCO 最適",dx:1.90, dy:1.90, dz:2.42, t:0.90, x:0.15, color:"#0F6E56" },
+  { name: "LaMnO₃",  dx:1.96, dy:1.96, dz:2.28, t:0.87, x:0.00, color:"#D85A30" },
+  { name: "強 JT 歪み",dx:1.85,dy:1.85, dz:2.55, t:0.85, x:0.15, color:"#A32D2D" },
+];
+
+const pContainer = document.getElementById('presets');
+PRESETS.forEach((p, i) => {
+  const btn = document.createElement('button');
+  btn.textContent = p.name;
+  btn.style.cssText = `
+    background: ${p.color}18; color: ${p.color};
+    border: 1px solid ${p.color}44; border-radius: 6px;
+    padding: 5px 14px; margin: 0 6px 6px 0;
+    font-size: 13px; cursor: pointer; font-family: inherit;
+  `;
+  btn.onclick = () => {
+    document.getElementById('sl-dx').value = p.dx;
+    document.getElementById('sl-dy').value = p.dy;
+    document.getElementById('sl-dz').value = p.dz;
+    document.getElementById('sl-t').value = p.t;
+    document.getElementById('sl-x').value = p.x;
+    updateAll();
+  };
+  pContainer.appendChild(btn);
+});
+
+// ── 計算関数
+function calcTTT(dx, dy, dz, t, x) {
+  // ベクトル総和のノルム（TTT-D）
+  const vx = dx - dx; // ± が打ち消し合うが非等価の場合は残る
+  // 実際には (dx - dx) = 0 だが、非対称変形を考慮
+  const vsum_x = dx - dx; // 対称なので常に0（TTTの理想）
+  const vsum_y = dy - dy;
+  const vsum_z = dz - dz;
+  // 歪みは各軸の「差」から来る：d_z ≠ d_x の場合 J 軸が非等価
+  const d_mean = (dx + dy + dz) / 3;
+  const D = Math.sqrt(
+    Math.pow((dx - d_mean), 2) +
+    Math.pow((dy - d_mean), 2) +
+    Math.pow((dz - d_mean) * 2, 2)
+  ) * 0.7;
+
+  const Q = (2 * dz - dx - dy) / Math.sqrt(6);
+  const EQ = Math.max(0, 1 - D / d_mean);
+
+  // Tc 予測（TTT モデル）
+  const TC_MAX = 92.0;
+  const f_t = Math.exp(-2.0 * Math.abs(t - 1.0));
+  const x_opt = 0.15, sigma = 0.10;
+  const g_x = Math.exp(-Math.pow(x - x_opt, 2) / (2 * sigma * sigma));
+  const Tc = TC_MAX * EQ * f_t * g_x;
+
+  return { D, Q, EQ, Tc };
+}
+
+function getVals() {
+  return {
+    dx: parseFloat(document.getElementById('sl-dx').value),
+    dy: parseFloat(document.getElementById('sl-dy').value),
+    dz: parseFloat(document.getElementById('sl-dz').value),
+    t: parseFloat(document.getElementById('sl-t').value),
+    x: parseFloat(document.getElementById('sl-x').value),
+  };
+}
+
+function updateAll() {
+  const { dx, dy, dz, t, x } = getVals();
+
+  document.getElementById('v-dx').textContent = dx.toFixed(2) + ' Å';
+  document.getElementById('v-dy').textContent = dy.toFixed(2) + ' Å';
+  document.getElementById('v-dz').textContent = dz.toFixed(2) + ' Å';
+  document.getElementById('v-t').textContent = t.toFixed(2);
+  document.getElementById('v-x').textContent = x.toFixed(2);
+
+  const { D, Q, EQ, Tc } = calcTTT(dx, dy, dz, t, x);
+
+  // メトリクス更新
+  const mD = document.getElementById('m-D');
+  mD.textContent = D.toFixed(4);
+  mD.className = 'metric-value ' + (D < 0.1 ? 'good' : D < 0.3 ? 'warn' : 'bad');
+
+  const mQ = document.getElementById('m-Q');
+  mQ.textContent = (Q >= 0 ? '+' : '') + Q.toFixed(3) + ' Å';
+  mQ.className = 'metric-value ' + (Math.abs(Q) < 0.05 ? 'good' : Math.abs(Q) < 0.2 ? 'warn' : 'bad');
+
+  const eqPct = Math.round(EQ * 100);
+  const eqColor = EQ > 0.85 ? '#0F6E56' : EQ > 0.65 ? '#854F0B' : '#A32D2D';
+  document.getElementById('eq-bar').style.width = eqPct + '%';
+  document.getElementById('eq-bar').style.background = eqColor;
+  document.getElementById('m-EQ').textContent = `EQ = ${EQ.toFixed(4)}（${eqPct}%）`;
+  document.getElementById('m-EQ').style.color = eqColor;
+
+  const mTc = document.getElementById('m-Tc');
+  mTc.textContent = Math.round(Tc) + ' K';
+  mTc.style.color = Tc > 60 ? '#534AB7' : Tc > 20 ? '#854F0B' : '#A32D2D';
+
+  const stateEl = document.getElementById('m-state');
+  if (Tc > 77) stateEl.textContent = '液体窒素温度（77 K）超え — 高温超電導';
+  else if (Tc > 30) stateEl.textContent = '中温域の超電導';
+  else if (Tc > 5) stateEl.textContent = '低温超電導';
+  else stateEl.textContent = '超電導なし — TTT 均衡が不十分';
+
+  // 八面体描画
+  drawOctahedron(dx, dy, dz);
+  // 相図更新
+  drawPhaseDiagram(dx, dy, dz, t);
+  // 対応表更新
+  updateCorrTable(D, Q, EQ, Tc);
+}
+
+// ── BO₆ 正八面体 SVG 描画
+function drawOctahedron(dx, dy, dz) {
+  const svg = document.getElementById('oc-svg');
+  // 等角投影変換
+  const project = (x, y, z) => ({
+    px: (x - y) * Math.cos(Math.PI / 6) * 55,
+    py: -(x + y) * Math.sin(Math.PI / 6) * 55 - z * 55 * 0.75
+  });
+
+  const oxygens = [
+    { key: 'R+', v: [dx, 0, 0], c: '#E24B4A' },
+    { key: 'R−', v: [-dx, 0, 0], c: '#E24B4A' },
+    { key: 'I+', v: [0, dy, 0], c: '#378ADD' },
+    { key: 'I−', v: [0, -dy, 0], c: '#378ADD' },
+    { key: 'J+', v: [0, 0, dz], c: '#1D9E75' },
+    { key: 'J−', v: [0, 0, -dz], c: '#1D9E75' },
+  ];
+
+  const center = project(0, 0, 0);
+  let html = '';
+
+  // 結合線
+  oxygens.forEach(o => {
+    const p = project(...o.v);
+    html += `<line x1="${center.px}" y1="${center.py}" x2="${p.px}" y2="${p.py}" stroke="${o.c}" stroke-width="1.8" opacity="0.7"/>`;
+  });
+
+  // ベクトル総和矢印
+  const d_mean = (dx + dy + dz) / 3;
+  const vx = 0, vy = 0, vz = (dz - d_mean) * 3;
+  if (Math.abs(vz) > 0.05) {
+    const vEnd = project(vx, vy, vz);
+    html += `<line x1="${center.px}" y1="${center.py}" x2="${vEnd.px}" y2="${vEnd.py}" stroke="#D85A30" stroke-width="3" opacity="0.9" marker-end="url(#arr)"/>`;
+  }
+
+  // 酸素球
+  oxygens.forEach(o => {
+    const p = project(...o.v);
+    html += `<circle cx="${p.px}" cy="${p.py}" r="10" fill="${o.c}" opacity="0.9"/>`;
+    html += `<text x="${p.px}" y="${p.py + 4}" text-anchor="middle" fill="white" font-size="8" font-family="sans-serif">${o.key}</text>`;
+  });
+
+  // B サイト中心
+  html += `<circle cx="${center.px}" cy="${center.py}" r="13" fill="#534AB7"/>`;
+  html += `<text x="${center.px}" y="${center.py + 4}" text-anchor="middle" fill="white" font-size="9" font-family="sans-serif">B</text>`;
+
+  svg.innerHTML = `
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+        <path d="M2 1L8 5L2 9" fill="none" stroke="#D85A30" stroke-width="2"/>
+      </marker>
+    </defs>
+    ${html}
+  `;
+}
+
+// ── ドーピング相図
+function drawPhaseDiagram(dx, dy, dz, t) {
+  const canvas = document.getElementById('phase-canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth * 2;
+  canvas.height = 440;
+  ctx.scale(2, 2);
+  const W = canvas.offsetWidth, H = 220;
+
+  ctx.clearRect(0, 0, W, H);
+
+  const margin = { left: 40, right: 20, top: 15, bottom: 35 };
+  const pw = W - margin.left - margin.right;
+  const ph = H - margin.top - margin.bottom;
+
+  // 軸
+  ctx.strokeStyle = '#ccc';
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  ctx.moveTo(margin.left, margin.top);
+  ctx.lineTo(margin.left, H - margin.bottom);
+  ctx.lineTo(W - margin.right, H - margin.bottom);
+  ctx.stroke();
+
+  ctx.fillStyle = '#888';
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('ドーピング量 x', margin.left + pw / 2, H - 5);
+  ctx.save();
+  ctx.translate(12, margin.top + ph / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('Tc [K]', 0, 0);
+  ctx.restore();
+
+  const N = 200;
+  const x_arr = Array.from({ length: N }, (_, i) => i / (N - 1) * 0.35);
+  const TC_MAX = 92;
+
+  const eqScenarios = [
+    { label: '現在の設定', dx, dy, dz, color: '#534AB7', width: 2.5 },
+    { label: '理想 BO₆', dx: 2.0, dy: 2.0, dz: 2.0, color: '#1D9E75', width: 1.2 },
+    { label: 'LaMnO₃ 型', dx: 1.96, dy: 1.96, dz: 2.28, color: '#D85A30', width: 1.2 },
+  ];
+
+  eqScenarios.forEach(sc => {
+    const { D, EQ } = calcTTT(sc.dx, sc.dy, sc.dz, t, 0.15);
+    const f_t = Math.exp(-2 * Math.abs(t - 1));
+    const pts = x_arr.map(x => {
+      const g_x = Math.exp(-Math.pow(x - 0.15, 2) / (2 * 0.01));
+      return TC_MAX * EQ * f_t * g_x;
+    });
+
+    ctx.beginPath();
+    ctx.strokeStyle = sc.color;
+    ctx.lineWidth = sc.width;
+    ctx.setLineDash(sc.label === '現在の設定' ? [] : [4, 3]);
+    pts.forEach((tc, i) => {
+      const px = margin.left + (x_arr[i] / 0.35) * pw;
+      const py = H - margin.bottom - (tc / TC_MAX) * ph;
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // ラベル
+    const maxIdx = pts.indexOf(Math.max(...pts));
+    ctx.fillStyle = sc.color;
+    ctx.font = '9px sans-serif';
+    ctx.textAlign = 'center';
+    const lx = margin.left + (x_arr[maxIdx] / 0.35) * pw;
+    const ly = H - margin.bottom - (pts[maxIdx] / TC_MAX) * ph - 6;
+    ctx.fillText(sc.label, lx, ly);
+  });
+
+  // 目盛り
+  ctx.fillStyle = '#888';
+  ctx.font = '9px sans-serif';
+  ctx.textAlign = 'center';
+  [0, 0.1, 0.2, 0.3].forEach(xv => {
+    const px = margin.left + (xv / 0.35) * pw;
+    ctx.fillText(xv.toFixed(1), px, H - margin.bottom + 12);
+    ctx.strokeStyle = '#eee';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(px, margin.top);
+    ctx.lineTo(px, H - margin.bottom);
+    ctx.stroke();
+  });
+  ctx.textAlign = 'right';
+  [0, 30, 60, 90].forEach(tc => {
+    const py = H - margin.bottom - (tc / TC_MAX) * ph;
+    ctx.fillText(tc, margin.left - 4, py + 3);
+    ctx.strokeStyle = '#eee';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(margin.left, py);
+    ctx.lineTo(W - margin.right, py);
+    ctx.stroke();
+  });
+
+  // 77K ライン（液体窒素）
+  const py77 = H - margin.bottom - (77 / TC_MAX) * ph;
+  ctx.strokeStyle = '#ccc';
+  ctx.setLineDash([2, 3]);
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(margin.left, py77);
+  ctx.lineTo(W - margin.right, py77);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#aaa';
+  ctx.font = '9px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText('77 K（液体N₂）', W - margin.right - 2, py77 - 3);
+}
+
+// ── 対応表
+function updateCorrTable(D, Q, EQ, Tc) {
+  const rows = [
+    ["双極のゼロ（00）", "Cooper 対（+k↑, −k↓）", EQ > 0.8 ? "安定形成中" : "不安定"],
+    ["9点正八面体系", "BO₆ 正八面体", `TTT-D = ${D.toFixed(4)}`],
+    ["ベクトル総和ゼロ", "超電導凝縮（BCS/BEC）", EQ > 0.85 ? "収束良好" : "発散傾向"],
+    ["JT 歪み（点の変位）", "ヤーン・テラー効果", `Q = ${Q.toFixed(3)} Å`],
+    ["閾値 v_c", "ペアギャップ 2Δ", `Tc ≈ ${Math.round(Tc)} K`],
+    ["OOπ（球面展開）", "完全立方対称 Pm3̄m", `EQ = ${EQ.toFixed(4)}`],
+  ];
+
+  document.getElementById('corr-table').innerHTML = rows.map(([ttt, phys, status]) =>
+    `<tr><td style="color:var(--purple); font-size:12px;">${ttt}</td><td>${phys}</td><td style="color:var(--muted); font-size:12px;">${status}</td></tr>`
+  ).join('');
+}
+
+// ── イベントリスナー
+['sl-dx','sl-dy','sl-dz','sl-t','sl-x'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateAll);
+});
+
+// 初期化
+updateAll();
+</script>
+</body>
+</html>
